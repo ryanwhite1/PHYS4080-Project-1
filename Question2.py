@@ -40,7 +40,7 @@ def cos_dens(xarr, m, spin, cross):
 x = np.logspace(0, 3, 100)
 
 y = cos_dens(x, 100, 1/2, cms2gev(1e-26))
-y2 = cos_dens(x, 20, 1/2, cms2gev(1e-30))
+y2 = cos_dens(x, 100, 1/2, cms2gev(1e-27))
 yeq = Yeq(x, 1/2)
 
 
@@ -49,4 +49,5 @@ fig, ax = plt.subplots()
 ax.plot(x, y)
 ax.plot(x, y2)
 ax.set_xscale('log')
+ax.set_yscale('log')
 
