@@ -42,16 +42,26 @@ def dimenless_abund(xarr, m, spin, cross):
     ans = integ.odeint(dGdx, g0, xarr, args=(m, spin, cross)) / mu
     return ans
 
-def root_find(xarr, mass, ovrange):
+def cosmo_abund(cross, xarr, m, spin, shift):
+    '''
+    '''
     mult = 1 / (3.63 * 10**-9)
-    func = lambda x, b: dimenless_abund(xarr, mass, 1/2, x)[-1] * mult * mass - 0.1200 + b
-    zero = lambda x: dimenless_abund(xarr, mass, 1/2, x)[-1] * mult * mass
+    return dimenless_abund(xarr, mass, 1/2, cross)[-1] * m * mult - shift
+
+def root_find(xarr, mass, ovrange):
+    '''
+    '''
+    o1, o2 = cms2gev(ovrange[0]), cms2gev(ovrange[1])
     
-    print(func(ovrange[0], 0.001), func(ovrange[1], 0.001))
-    root1 = opt.brentq(func, ovrange[0], ovrange[1], args=(0.001))
-    root2 = opt.brentq(func, ovrange[0], ovrange[1], args=(-0.001))
-    frac = opt.brentq(zero, ovrange[0], ovrange[1])
-    return [root1, root2, frac]
+    # print(cosmo_abund(ovrange[0], xarr, mass, 1/2, 0.12 - 0.001), cosmo_abund(ovrange[0], xarr, mass, 1/2, 0.12 + 0.001))
+    print(opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, 0), maxfev=10000) * (1.17 * 1e-17))
+    # root1 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 - 0.001))
+    # root2 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 + 0.001))
+    # frac = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0))
+    root1 = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, -0.12 - 0.001), maxfev=10000) * (1.17 * 1e-17)
+    root2 = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, -0.12 + 0.001), maxfev=10000) * (1.17 * 1e-17)
+    frac = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, 0), maxfev=10000) * (1.17 * 1e-17)
+    return root1, root2, frac
 
 x = np.logspace(0, 3, 100)
 
@@ -103,12 +113,12 @@ x = np.logspace(0, 3, 100)
 
 ### Q3c ###
 
-x = [23.658, 1000]
+# x = [23.658, 1000]
 
-fig, ax = plt.subplots()
+# fig, ax = plt.subplots()
 
-masses = np.linspace(20, 100, 10)
-orange = [1e-45, 1e-20]
+masses = np.linspace(50, 100, 10)
+orange = [1e-26, 1e-24]
 
 ovs = np.empty((len(masses), 3))
 for i, mass in enumerate(masses):
