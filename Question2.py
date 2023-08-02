@@ -46,24 +46,27 @@ def cosmo_abund(cross, xarr, m, spin, shift):
     '''
     '''
     mult = 1 / (3.63 * 10**-9)
-    return dimenless_abund(xarr, mass, 1/2, cross)[-1] * m * mult - shift
+    return dimenless_abund(xarr, mass, spin, cms2gev(10**cross))[-1] * m * mult - shift
 
 def root_find(xarr, mass, ovrange):
     '''
     '''
-    o1, o2 = cms2gev(ovrange[0]), cms2gev(ovrange[1])
+    # o1, o2 = cms2gev(ovrange[0]), cms2gev(ovrange[1])
+    # o1, o2 = ovrange
+    o1, o2 = np.log10(ovrange)
+    print(o1, o2)
+    print(cosmo_abund(o1, xarr, mass, 1/2, 0.12 + 0.003), cosmo_abund(o2, xarr, mass, 1/2, 0.12 + 0.003))
+    # print(opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, 0), maxfev=10000) * (1.17 * 1e-17))
     
-    # print(cosmo_abund(ovrange[0], xarr, mass, 1/2, 0.12 - 0.001), cosmo_abund(ovrange[0], xarr, mass, 1/2, 0.12 + 0.001))
-    print(opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, 0), maxfev=10000) * (1.17 * 1e-17))
-    # root1 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 - 0.001))
-    # root2 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 + 0.001))
-    # frac = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0))
-    root1 = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, -0.12 - 0.001), maxfev=10000) * (1.17 * 1e-17)
-    root2 = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, -0.12 + 0.001), maxfev=10000) * (1.17 * 1e-17)
-    frac = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, 0), maxfev=10000) * (1.17 * 1e-17)
+    root1 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 + 0.003))
+    root2 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 - 0.003))
+    frac = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0))
+    # root1 = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, -0.12 - 0.003), maxfev=10000) * (1.17 * 1e-17)
+    # root2 = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, -0.12 + 0.003), maxfev=10000) * (1.17 * 1e-17)
+    # frac = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, 0), maxfev=10000) * (1.17 * 1e-17)
     return root1, root2, frac
 
-x = np.logspace(0, 3, 100)
+# x = np.logspace(0, 3, 100)
 
 
 ### Q3a ###
@@ -87,6 +90,7 @@ x = np.logspace(0, 3, 100)
 
 
 # ### Now Q3b ###
+# x = np.logspace(1, 3, 100)
 # masses = np.arange(1, 200, 1)
 # # masses = np.logspace(-5, 2, 20)
 # ovs = np.logspace(-30, -26, 5)
@@ -117,13 +121,24 @@ x = np.logspace(0, 3, 100)
 
 # fig, ax = plt.subplots()
 
-masses = np.linspace(50, 100, 10)
-orange = [1e-26, 1e-24]
+x = np.logspace(1, 3, 200)
+# x = [10, 1000]
+# masses = np.linspace(50, 100, 100)
+masses = np.logspace(1.5, 3, 100)
+orange = [1e-30, 1e-10]
 
 ovs = np.empty((len(masses), 3))
 for i, mass in enumerate(masses):
     ovs[i, :] = root_find(x, mass, orange)
+    
+fig, ax = plt.subplots()
 
+ax.fill_between(masses, ovs[:, 0], ovs[:, 1], alpha=0.8, color='tab:blue')
+ax.fill_between(masses, ovs[:, 0], ovs[:, 2], alpha=0.3, color='tab:red')
+ax.set_yscale('log')
+ax.set_xscale('log')
+ax.set_ylabel("Cross Section $<\sigma v>$ (cm$^3$/s)")
+ax.set_xlabel("Mass $m_\chi$ (GeV)")
 
 
 
