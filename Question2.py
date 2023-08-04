@@ -29,24 +29,29 @@ def Yeq(x, spin):
     ans = (45 / (4 * np.pi**4)) * (x**2 / h_eff) * (2 * spin + 1) * sp.kn(2, x)
     return ans
 
-def dGdx(g, x, m, spin, cross):
+def dGdx(g, x, m, spin, cross, log):
     '''
     '''
-    ans = (m / x**2) * cross * ((Yeq(x, spin) * mu)**2 - g**2)
+    if log:
+        ov = cms2gev(10**cross)
+    else:
+        ov = cms2gev(cross)
+    ans = (m / x**2) * ov * ((Yeq(x, spin) * mu)**2 - g**2)
     return ans
 
-def dimenless_abund(xarr, m, spin, cross):
+def dimenless_abund(xarr, m, spin, cross, log):
     '''
     '''
     g0 = mu * Yeq(xarr[0], spin)
-    ans = integ.odeint(dGdx, g0, xarr, args=(m, spin, cross)) / mu
+    ans = integ.odeint(dGdx, g0, xarr, args=(m, spin, cross, log)) / mu
+    # ans = integ.solve_ivp(dGdx, [xarr[0], xarr[-1]], [g0], method='BDF', t_eval=xarr, args=(m, spin, cross, log)).y[-1] / mu
     return ans
 
-def cosmo_abund(cross, xarr, m, spin, shift):
+def cosmo_abund(cross, xarr, m, spin, shift, log):
     '''
     '''
     mult = 1 / (3.63 * 10**-9)
-    return dimenless_abund(xarr, mass, spin, cms2gev(10**cross))[-1] * m * mult - shift
+    return dimenless_abund(xarr, mass, spin, cross, log)[-1] * m * mult - shift
 
 def root_find(xarr, mass, ovrange):
     '''
@@ -54,13 +59,15 @@ def root_find(xarr, mass, ovrange):
     # o1, o2 = cms2gev(ovrange[0]), cms2gev(ovrange[1])
     # o1, o2 = ovrange
     o1, o2 = np.log10(ovrange)
-    print(o1, o2)
-    print(cosmo_abund(o1, xarr, mass, 1/2, 0.12 + 0.003), cosmo_abund(o2, xarr, mass, 1/2, 0.12 + 0.003))
+    # print(o1, o2)
+    print(cosmo_abund(o1, xarr, mass, 1/2, 0.12 + 0.003, True), cosmo_abund(o2, xarr, mass, 1/2, 0.12 + 0.003, True))
     # print(opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, 0), maxfev=10000) * (1.17 * 1e-17))
     
-    root1 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 + 0.003))
-    root2 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 - 0.003))
-    frac = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0))
+    root1 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 + 0.003, True), maxiter=10000)
+    root2 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 - 0.003, True), maxiter=10000)
+    print(root1, root2)
+    # frac = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0, True))
+    frac = 0
     # root1 = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, -0.12 - 0.003), maxfev=10000) * (1.17 * 1e-17)
     # root2 = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, -0.12 + 0.003), maxfev=10000) * (1.17 * 1e-17)
     # frac = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, 0), maxfev=10000) * (1.17 * 1e-17)
@@ -129,6 +136,10 @@ orange = [1e-30, 1e-10]
 
 ovs = np.empty((len(masses), 3))
 for i, mass in enumerate(masses):
+    # try:
+    #     ovs[i, :] = root_find(x, mass, orange)
+    # except:
+    #     pass
     ovs[i, :] = root_find(x, mass, orange)
     
 fig, ax = plt.subplots()
