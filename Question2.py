@@ -58,19 +58,19 @@ def root_find(xarr, mass, ovrange):
     '''
     # o1, o2 = cms2gev(ovrange[0]), cms2gev(ovrange[1])
     # o1, o2 = ovrange
-    o1, o2 = np.log10(ovrange)
+    # o1, o2 = np.log10(ovrange)
     # print(o1, o2)
-    print(cosmo_abund(o1, xarr, mass, 1/2, 0.12 + 0.003, True), cosmo_abund(o2, xarr, mass, 1/2, 0.12 + 0.003, True))
+    # print(cosmo_abund(o1, xarr, mass, 1/2, 0.12 + 0.003, True), cosmo_abund(o2, xarr, mass, 1/2, 0.12 + 0.003, True))
     # print(opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, 0), maxfev=10000) * (1.17 * 1e-17))
     
-    root1 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 + 0.003, True), maxiter=10000)
-    root2 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 - 0.003, True), maxiter=10000)
-    print(root1, root2)
+    # root1 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 + 0.003, True), maxiter=10000)
+    # root2 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 - 0.003, True), maxiter=10000)
+    # print(root1, root2)
     # frac = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0, True))
     frac = 0
-    # root1 = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, -0.12 - 0.003), maxfev=10000) * (1.17 * 1e-17)
-    # root2 = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, -0.12 + 0.003), maxfev=10000) * (1.17 * 1e-17)
-    # frac = opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, 0), maxfev=10000) * (1.17 * 1e-17)
+    root1 = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0.12 + 0.003, True), maxfev=10000)
+    root2 = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0.12 - 0.003, True), maxfev=10000)
+    frac = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0, True), maxfev=10000)
     return root1, root2, frac
 
 # x = np.logspace(0, 3, 100)
@@ -128,10 +128,10 @@ def root_find(xarr, mass, ovrange):
 
 # fig, ax = plt.subplots()
 
-x = np.logspace(1, 3, 200)
+x = np.logspace(1.1, 3, 400)
 # x = [10, 1000]
 # masses = np.linspace(50, 100, 100)
-masses = np.logspace(1.5, 3, 100)
+masses = np.logspace(0, 4, 100)
 orange = [1e-30, 1e-10]
 
 ovs = np.empty((len(masses), 3))
@@ -144,12 +144,21 @@ for i, mass in enumerate(masses):
     
 fig, ax = plt.subplots()
 
-ax.fill_between(masses, ovs[:, 0], ovs[:, 1], alpha=0.8, color='tab:blue')
-ax.fill_between(masses, ovs[:, 0], ovs[:, 2], alpha=0.3, color='tab:red')
+ax.fill_between(masses, 10**ovs[:, 0], 10**ovs[:, 1], alpha=0.8, color='tab:blue', label='$3\sigma$ Region')
+ax.fill_between(masses, 10**ovs[:, 1], 10**ovs[:, 2], alpha=0.3, color='tab:red', label='Partial Solution')
 ax.set_yscale('log')
 ax.set_xscale('log')
-ax.set_ylabel("Cross Section $<\sigma v>$ (cm$^3$/s)")
+ax.set_ylabel("Cross Section $<\sigma v>$ (cm$^3$/s)", usetex=True)
 ax.set_xlabel("Mass $m_\chi$ (GeV)")
+ax.legend()
+
+fig.savefig('Q3c.png', dpi=400, bbox_inches='tight')
+fig.savefig('Q3c.pdf', dpi=400, bbox_inches='tight')
+
+ax.set_ylim([0.9 * min(10**ovs[:, 1]), 1.1 * max(10**ovs[:, 0])])
+ax.legend(loc='lower right')
+fig.savefig('Q3c-zoom.png', dpi=400, bbox_inches='tight')
+fig.savefig('Q3c-zoom.pdf', dpi=400, bbox_inches='tight')
 
 
 
