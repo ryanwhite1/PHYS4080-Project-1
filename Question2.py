@@ -44,53 +44,39 @@ def dimenless_abund(xarr, m, spin, cross, log):
     '''
     g0 = mu * Yeq(xarr[0], spin)
     ans = integ.odeint(dGdx, g0, xarr, args=(m, spin, cross, log)) / mu
-    # ans = integ.solve_ivp(dGdx, [xarr[0], xarr[-1]], [g0], method='BDF', t_eval=xarr, args=(m, spin, cross, log)).y[-1] / mu
     return ans
 
 def cosmo_abund(cross, xarr, m, spin, shift, log):
     '''
     '''
     mult = 1 / (3.63 * 10**-9)
-    return dimenless_abund(xarr, mass, spin, cross, log)[-1] * m * mult - shift
+    return dimenless_abund(xarr, m, spin, cross, log)[-1] * m * mult - shift
 
-def root_find(xarr, mass, ovrange):
+def root_find(xarr, mass):
     '''
     '''
-    # o1, o2 = cms2gev(ovrange[0]), cms2gev(ovrange[1])
-    # o1, o2 = ovrange
-    # o1, o2 = np.log10(ovrange)
-    # print(o1, o2)
-    # print(cosmo_abund(o1, xarr, mass, 1/2, 0.12 + 0.003, True), cosmo_abund(o2, xarr, mass, 1/2, 0.12 + 0.003, True))
-    # print(opt.fsolve(cosmo_abund, cms2gev(1e-25), args=(xarr, mass, 1/2, 0), maxfev=10000) * (1.17 * 1e-17))
-    
-    # root1 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 + 0.003, True), maxiter=10000)
-    # root2 = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0.12 - 0.003, True), maxiter=10000)
-    # print(root1, root2)
-    # frac = opt.brentq(cosmo_abund, o1, o2, args=(xarr, mass, 1/2, 0, True))
-    frac = 0
     root1 = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0.12 + 0.003, True), maxfev=10000)
     root2 = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0.12 - 0.003, True), maxfev=10000)
-    frac = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0, True), maxfev=10000)
+    frac = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0., True), maxfev=10000)
     return root1, root2, frac
-
-# x = np.logspace(0, 3, 100)
 
 
 ### Q3a ###
 
-# fig, ax = plt.subplots()
+# x = np.logspace(0, 3, 100)
 
-# masses = [100, 50, 100, 100, 20]
-# ovs = [1e-26, 1e-26, 1e-27, 1e-30, 1e-30]
+# fig, ax = plt.subplots(figsize=(4.5, 5))
+
+# masses = [100, 100, 100, 100, 100, 10]
+# ovs = [-26., -27., -28.1, -29., -30., -30.]
 
 # for i, mass in enumerate(masses):
-#     y = dimenless_abund(x, mass, 1/2, cms2gev(ovs[i]))
-#     ax.plot(x, y, label=f'$m_\chi$={mass}GeV, $\sigma v$={ovs[i]}')
-# ax.set_xscale('log')
-# ax.set_yscale('log')
-# ax.set_xlabel("$x = m / T$")
-# ax.set_ylabel("Abundance $Y$")
-# ax.legend()
+#     y = dimenless_abund(x, mass, 1/2, ovs[i], True)
+#     ax.plot(x, y, label=f'$m_\chi$={mass}, $\log_{{10}}(\sigma v)={ovs[i]}$')
+# ax.set_xscale('log'); ax.set_yscale('log')
+# ax.set_xlabel("$x = m / T$"); ax.set_ylabel("Abundance $Y$")
+# ax.legend(loc='upper right')
+# ax.set_ylim(ymax=0.1)
 
 # fig.savefig("Q3a.png", dpi=400, bbox_inches='tight')
 # fig.savefig("Q3a.pdf", dpi=400, bbox_inches='tight')
@@ -98,23 +84,22 @@ def root_find(xarr, mass, ovrange):
 
 # ### Now Q3b ###
 # x = np.logspace(1, 3, 100)
-# masses = np.arange(1, 200, 1)
-# # masses = np.logspace(-5, 2, 20)
-# ovs = np.logspace(-30, -26, 5)
+# masses = np.logspace(-3, 4, 600)
+# ovs = np.linspace(-30, -26, 5)
+
 # ys = np.zeros((len(masses), len(ovs)))
-# mult = 1 / (3.63 * 10**-9)
 
 # for i, mass in enumerate(masses):
 #     for j, ov in enumerate(ovs):
-#         ys[i, j] = dimenless_abund(x, mass, 1/2, cms2gev(ov))[-1] * mult * mass
+#         ys[i, j] = cosmo_abund(ov, x, mass, 1/2, 0, True)
 
-# fig, ax = plt.subplots()
+# fig, ax = plt.subplots(figsize=(8, 4))
 # for i in range(len(ovs)):
-#     ax.plot(masses, ys[:, i], label=f'$\sigma v = ${ovs[i]}')
+#     ax.plot(masses, ys[:, i], label=f'$\log_{{10}}(\sigma v) = {ovs[i]}$')
 # # ax.set_xscale('log')
-# ax.set_yscale('log')
+# ax.set_yscale('log'); ax.set_xscale('log')
 # ax.set_ylim(ymin=0.1)
-# ax.legend()
+# ax.legend(loc='upper left')
 # ax.set_xlabel("Mass $m_\chi$ (GeV)")
 # ax.set_ylabel("Present Day Abundance $\Omega h^2$")
 # fig.savefig("Q3b.png", dpi=400, bbox_inches='tight')
@@ -124,41 +109,34 @@ def root_find(xarr, mass, ovrange):
 
 ### Q3c ###
 
-# x = [23.658, 1000]
+# x = np.logspace(1.1, 3, 400)
+# masses = np.logspace(0, 4, 100)
 
-# fig, ax = plt.subplots()
-
-x = np.logspace(1.1, 3, 400)
-# x = [10, 1000]
-# masses = np.linspace(50, 100, 100)
-masses = np.logspace(0, 4, 100)
-orange = [1e-30, 1e-10]
-
-ovs = np.empty((len(masses), 3))
-for i, mass in enumerate(masses):
-    # try:
-    #     ovs[i, :] = root_find(x, mass, orange)
-    # except:
-    #     pass
-    ovs[i, :] = root_find(x, mass, orange)
+# ovs = np.empty((len(masses), 3))
+# for i, mass in enumerate(masses):
+#     ovs[i, :] = root_find(x, mass)
     
-fig, ax = plt.subplots()
+# fig, ax = plt.subplots(figsize=(4.5, 4))
 
-ax.fill_between(masses, 10**ovs[:, 0], 10**ovs[:, 1], alpha=0.8, color='tab:blue', label='$3\sigma$ Region')
-ax.fill_between(masses, 10**ovs[:, 1], 10**ovs[:, 2], alpha=0.3, color='tab:red', label='Partial Solution')
-ax.set_yscale('log')
-ax.set_xscale('log')
-ax.set_ylabel("Cross Section $<\sigma v>$ (cm$^3$/s)", usetex=True)
-ax.set_xlabel("Mass $m_\chi$ (GeV)")
-ax.legend()
+# ax.fill_between(masses, 10**ovs[:, 0], 10**ovs[:, 1], alpha=0.8, color='tab:blue', label='$3\sigma$ Region')
+# ax.fill_between(masses, 10**ovs[:, 1], 10**ovs[:, 2], alpha=0.3, color='tab:red', label='Partial Solution')
+# ax.set_yscale('log')
+# ax.set_xscale('log')
+# ax.set_ylabel("Cross Section $<\sigma v>$ (cm$^3$/s)", usetex=True)
+# ax.set_xlabel("Mass $m_\chi$ (GeV)")
+# ax.legend()
 
-fig.savefig('Q3c.png', dpi=400, bbox_inches='tight')
-fig.savefig('Q3c.pdf', dpi=400, bbox_inches='tight')
+# fig.savefig('Q3c.png', dpi=400, bbox_inches='tight')
+# fig.savefig('Q3c.pdf', dpi=400, bbox_inches='tight')
 
-ax.set_ylim([0.9 * min(10**ovs[:, 1]), 1.1 * max(10**ovs[:, 0])])
-ax.legend(loc='lower right')
-fig.savefig('Q3c-zoom.png', dpi=400, bbox_inches='tight')
-fig.savefig('Q3c-zoom.pdf', dpi=400, bbox_inches='tight')
+# ax.set_ylim([0.9 * min(10**ovs[:, 1]), 1.1 * max(10**ovs[:, 0])])
+# ax.legend(loc='lower right')
+# fig.savefig('Q3c-zoom.png', dpi=400, bbox_inches='tight')
+# fig.savefig('Q3c-zoom.pdf', dpi=400, bbox_inches='tight')
+
+
+### Q4a ###
+
 
 
 
