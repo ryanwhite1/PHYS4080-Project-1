@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import scipy.special as sp
 import scipy.integrate as integ
 import scipy.optimize as opt
+import scipy.interpolate as interp
 
 # set matplotlib plotting params to use latex
 plt.rcParams.update({"text.usetex": True})
@@ -20,11 +21,46 @@ plt.rcParams['mathtext.fontset']='cm'
 h_eff = 86.25                                   # effective entropic dof
 gstar = 86.25**(1/2)                            # effective energetic dof
 Mpl = 1.2 * 1e19                                # planck mass, GeV
+m_h = 125                                       # higgs mass, GeV
 mu = np.sqrt(np.pi / 45) * Mpl * gstar**(1/2)   # scaling constant
+v0 = 246                                        # vacuum expectation value, GeV
+
+# Q (GeV)
+Q = np.array([80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0, 170.0, 180.0, 190.0, 200.0, 220.0, 240.0, 260.0, 280.0, 300.0])
+# Gamma/width (MeV)
+Gamma_h = np.array([1.99, 2.22, 2.48, 2.85, 3.51, 4.91, 8.17, 17.3, 83.1, 380, 631, 1040, 1430, 2310, 3400, 4760, 6430, 8430]) / 1000
+# now converted to Gev!
+spl_Gamma_h = interp.CubicSpline(Q, np.log10(Gamma_h), extrapolate=True)
 
 def cms2gev(ov):
     '''Converts from units of cm^3/s to GeV'''
     return ov / (1.17 * 1e-17)
+
+def gamma_h(m):
+    '''
+    '''
+    if m > 300:
+        return Gamma_h[-1] + 0.1 * m
+    return 10**spl_Gamma_h(m)
+    
+
+def integrand_sveff_t(t, x, m, lambda_h):
+    '''
+    '''
+    s = 1 / t
+    sqrts = np.sqrt(s)
+    Dhs = 1 / ((s - m_h**2)**2 + m_h**2 * gamma_h(m_h))
+    ovcms = 2 * lambda_h * (v0 / sqrts) * Dhs * gamma_h(sqrts)
+    sveff =  x * s * np.sqrt(s - 4 * m**2) * sp.kn(1, x * sqrts / m) * ovcms / (16 * m**5 * sp.kn(2, x)**2)
+    return sveff
+
+def OeffV(x, m, lambda_h):
+    '''
+    '''
+    smin = 4.0 * pow(m, 2)
+    smax = 20.0 * pow(m, 2)
+    integral, err = integ.quad(integrand_sveff_t, 1.0/smax, 1.0/smin, args=(x, m, lambda_h), epsabs=0, epsrel=1.0e-3)
+    return integral
 
 def Yeq(x, spin):
     ''' Returns the equilibrium abundance of a particle given by Maxwell-Boltzmann approximation
@@ -50,9 +86,17 @@ def dGdx(g, x, m, spin, cross, log):
     spin : float
         Particle spin
     cross : float
-        Interaction cross section (in cm^3/s) of the particle. If `log` == True, then this should be log10(ov)
+        Interaction cross section (in cm^3/s) of the particle. If `log` == 'log', then this should be log10(ov)
+    log : str
+        If log == 'log', then behaves as described in 'cross'. If log == ['func', x], uses the OeffV() function to calculate the time
+        varying effective cross-section, where x is the lambda coeff (dimensionless coupling).
     '''
-    ov = cms2gev(10**cross) if log else cms2gev(cross)
+    if log == 'log':
+        ov = cms2gev(10**cross) 
+    elif isinstance(log, list):
+        ov = OeffV(x, m, log[1]) 
+    else: 
+        ov = cms2gev(cross)
     return (m / x**2) * ov * ((Yeq(x, spin) * mu)**2 - g**2)
 
 def dimenless_abund(xarr, m, spin, cross, log):
@@ -107,9 +151,9 @@ def root_find(xarr, mass):
     frac : float
         The (very) rough upper bound on cross section to explain *any* of the observed dark matter with our spin 1/2 particle.
     '''
-    root1 = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0.12 + 0.003, True), maxfev=10000) # start with initial guess of ov = 1e-25
-    root2 = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0.12 - 0.003, True), maxfev=10000) # have more iters to help the awful ODE converge
-    frac = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0., True), maxfev=10000)
+    root1 = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0.12 + 0.003, 'log'), maxfev=10000) # start with initial guess of ov = 1e-25
+    root2 = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0.12 - 0.003, 'log'), maxfev=10000) # have more iters to help the awful ODE converge
+    frac = opt.fsolve(cosmo_abund, -25., args=(xarr, mass, 1/2, 0., 'log'), maxfev=10000)
     return root1, root2, frac
 
 
@@ -124,7 +168,7 @@ def root_find(xarr, mass):
 # ovs = [-26., -27., -28.1, -29., -30., -30.]
 
 # for i, mass in enumerate(masses):
-#     y = dimenless_abund(x, mass, 1/2, ovs[i], True)     # solve for the abundance across our temps
+#     y = dimenless_abund(x, mass, 1/2, ovs[i], 'log')     # solve for the abundance across our temps
 #     ax.plot(x, y, label=f'$m_\chi$={mass}, $\log_{{10}}(\sigma v)={ovs[i]}$')   # and plot it on the figure
     
 # ax.set_xscale('log'); ax.set_yscale('log')
@@ -145,7 +189,7 @@ def root_find(xarr, mass):
 
 # for i, mass in enumerate(masses):
 #     for j, ov in enumerate(ovs):
-#         ys[i, j] = cosmo_abund(ov, x, mass, 1/2, 0, True) # calculate present day val for this mass and cross section, and store it
+#         ys[i, j] = cosmo_abund(ov, x, mass, 1/2, 0, 'log') # calculate present day val for this mass and cross section, and store it
 
 # # now to plot these present day vals
 # fig, ax = plt.subplots(figsize=(8, 4)) # wide figure!
@@ -193,7 +237,31 @@ def root_find(xarr, mass):
 
 ### Q4a ###
 
+# fig, ax = plt.subplots()
 
+# ax.plot(Q, Gamma_h)
+# ax.set_yscale('log')
+# m = np.arange(50, 200, 0.5)
+# ax.plot(m, [gamma_h(M) for M in m])
+
+xs = [10, 20, 50, 100]
+masses = np.logspace(np.log10(30), 3, 1000)
+sveff = np.zeros((len(xs), len(masses)))
+for i, x in enumerate(xs):
+    for j, m in enumerate(masses):
+        sveff[i, j] = OeffV(x, m, 1e-3)
+    
+    
+fig, ax = plt.subplots()
+for i in range(len(xs)):
+    ax.plot(masses, sveff[i, :], label=f'$x = {xs[i]}$')
+
+ax.set_xscale('log'); ax.set_yscale('log')
+ax.set_xlabel('Mass $m_S$ (GeV)'); ax.set_ylabel("Thermally Averaged Cross-Section $<\sigma v>$ (cm$^3$/s)")
+ax.legend()
+
+fig.savefig('Q4a.png', dpi=400, bbox_inches='tight')
+fig.savefig('Q4a.pdf', dpi=400, bbox_inches='tight')
 
 
 
