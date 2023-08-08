@@ -49,8 +49,8 @@ def integrand_sveff_t(t, x, m, lambda_h):
     '''
     s = 1 / t
     sqrts = np.sqrt(s)
-    Dhs = 1 / ((s - m_h**2)**2 + m_h**2 * gamma_h(m_h))
-    ovcms = 2 * lambda_h * (v0 / sqrts) * Dhs * gamma_h(sqrts)
+    Dhs = 1 / ((s - m_h**2)**2 + m_h**2 * gamma_h(m_h)**2)
+    ovcms = 2 * (lambda_h * v0)**2 / sqrts * Dhs * gamma_h(sqrts)
     sveff =  x * s * np.sqrt(s - 4 * m**2) * sp.kn(1, x * sqrts / m) * ovcms / (16 * m**5 * sp.kn(2, x)**2)
     return sveff
 
@@ -245,7 +245,7 @@ def root_find(xarr, mass):
 # ax.plot(m, [gamma_h(M) for M in m])
 
 xs = [10, 20, 50, 100]
-masses = np.logspace(np.log10(30), 3, 1000)
+masses = np.logspace(np.log10(30), 3, 100)
 sveff = np.zeros((len(xs), len(masses)))
 for i, x in enumerate(xs):
     for j, m in enumerate(masses):
