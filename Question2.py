@@ -244,24 +244,80 @@ def root_find(xarr, mass):
 # m = np.arange(50, 200, 0.5)
 # ax.plot(m, [gamma_h(M) for M in m])
 
-xs = [10, 20, 50, 100]
-masses = np.logspace(np.log10(30), 3, 100)
-sveff = np.zeros((len(xs), len(masses)))
-for i, x in enumerate(xs):
-    for j, m in enumerate(masses):
-        sveff[i, j] = OeffV(x, m, 1e-3)
+# xs = [10, 20, 50, 100]
+# masses = np.logspace(np.log10(30), 3, 200)
+# sveff = np.zeros((len(xs), len(masses)))
+# for i, x in enumerate(xs):
+#     for j, m in enumerate(masses):
+#         sveff[i, j] = OeffV(x, m, 1e-3)
     
     
-fig, ax = plt.subplots()
-for i in range(len(xs)):
-    ax.plot(masses, sveff[i, :], label=f'$x = {xs[i]}$')
+# fig, ax = plt.subplots()
+# for i in range(len(xs)):
+#     ax.plot(masses, sveff[i, :], label=f'$x = {xs[i]}$')
 
-ax.set_xscale('log'); ax.set_yscale('log')
-ax.set_xlabel('Mass $m_S$ (GeV)'); ax.set_ylabel("Thermally Averaged Cross-Section $<\sigma v>$ (cm$^3$/s)")
-ax.legend()
+# ax.set_xscale('log'); ax.set_yscale('log')
+# ax.set_xlabel('Mass $m_S$ (GeV)'); ax.set_ylabel("Thermally Averaged Cross-Section $<\sigma v>$ (cm$^3$/s)")
+# ax.legend()
 
-fig.savefig('Q4a.png', dpi=400, bbox_inches='tight')
-fig.savefig('Q4a.pdf', dpi=400, bbox_inches='tight')
+# fig.savefig('Q4a.png', dpi=400, bbox_inches='tight')
+# fig.savefig('Q4a.pdf', dpi=400, bbox_inches='tight')
+
+
+
+### Q4b ###
+
+# x = np.logspace(0, 3, 100)  # initialise temps
+
+# fig, ax = plt.subplots(figsize=(4.5, 5))    # make figure
+
+# # define parameters we want to look at
+# masses = [40, 60, 80, 100, 100, 200]
+# lambdas = [1e-3, 1e-3, 1e-3, 1e-3, 1e-4, 1e-3]
+
+# for i, mass in enumerate(masses):
+#     y = dimenless_abund(x, mass, 1/2, [], [True, lambdas[i]])     # solve for the abundance across our temps
+#     ax.plot(x, y, label=f'$m_S$={mass}, $\lambda={lambdas[i]}$')   # and plot it on the figure
+    
+# ax.set_xscale('log'); ax.set_yscale('log')
+# ax.set_xlabel("$x = m / T$"); ax.set_ylabel("Abundance $Y$")
+# ax.legend(loc='upper right')
+# ax.set_ylim(ymax=0.1)   # set a bit higher so that the legend fits nicely
+
+# fig.savefig("Q4b.png", dpi=400, bbox_inches='tight')    # save figures as png (to look at) and pdf (for the report)
+# fig.savefig("Q4b.pdf", dpi=400, bbox_inches='tight')
+
+
+
+### Q4c ###
+x = np.logspace(0, 3, 100)
+masses = np.logspace(np.log10(50), 3, 100) # big range of masses to look at
+# ovs = np.linspace(-30, -26, 5) # look at a few cross sections - this is a linspace, but these values will be used as powers
+
+# ys = np.zeros((len(masses), len(ovs))) # initialise array of data
+ys = np.zeros(len(masses))
+
+for i, mass in enumerate(masses):
+    # ys[i] = cosmo_abund([], x, mass, 1/2, 0, [True, 1e-3]) # calculate present day val for this mass and cross section, and store it
+    # ys[i] = dimenless_abund(x, mass, 1/2, [], [True, 1e-3])[-1]
+    ys[i] = (~np.isnan(dimenless_abund(x, mass, 1/2, [], [True, 1e-3]))).cumsum().argmax()
+    print(i)
+
+ys *= masses / (3.63 * 10**-9)
+
+# now to plot these present day vals
+fig, ax = plt.subplots(figsize=(8, 4)) # wide figure!
+ax.plot(masses, ys)
+    
+ax.set_yscale('log'); ax.set_xscale('log')
+ax.set_ylim(ymin=0.1)
+ax.legend(loc='upper left')
+ax.set_xlabel("Mass $m_S$ (GeV)")
+ax.set_ylabel("Present Day Abundance $\Omega_S h^2$")
+fig.savefig("Q4c.png", dpi=400, bbox_inches='tight')
+fig.savefig("Q4c.pdf", dpi=400, bbox_inches='tight')
+
+
 
 
 
