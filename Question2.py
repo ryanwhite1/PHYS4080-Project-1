@@ -290,8 +290,9 @@ def root_find(xarr, mass):
 
 
 ### Q4c ###
-x = np.logspace(0, 3, 100)
-masses = np.logspace(np.log10(50), 3, 100) # big range of masses to look at
+x = np.logspace(0, 3, 20)
+# masses = np.logspace(np.log10(50), 3, 100) # big range of masses to look at
+masses = np.linspace(50, 200, 100)
 # ovs = np.linspace(-30, -26, 5) # look at a few cross sections - this is a linspace, but these values will be used as powers
 
 # ys = np.zeros((len(masses), len(ovs))) # initialise array of data
@@ -300,8 +301,14 @@ ys = np.zeros(len(masses))
 for i, mass in enumerate(masses):
     # ys[i] = cosmo_abund([], x, mass, 1/2, 0, [True, 1e-3]) # calculate present day val for this mass and cross section, and store it
     # ys[i] = dimenless_abund(x, mass, 1/2, [], [True, 1e-3])[-1]
-    ys[i] = (~np.isnan(dimenless_abund(x, mass, 1/2, [], [True, 1e-3]))).cumsum().argmax()
-    print(i)
+    arr = dimenless_abund(x, mass, 1/2, [], [True, 1e-3])
+    index = len(masses) - 1
+    for j, val in enumerate(arr):
+        if np.isnan(val):
+            index = j - 1 
+            break 
+    ys[i] = arr[index]
+    print(i, ys[i])
 
 ys *= masses / (3.63 * 10**-9)
 
