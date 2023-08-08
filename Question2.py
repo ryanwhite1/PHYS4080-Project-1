@@ -40,7 +40,7 @@ def gamma_h(m):
     '''
     '''
     if m > 300:
-        return Gamma_h[-1] + 0.1 * m
+        return Gamma_h[-1] + 0.1 * (m - 300)
     return 10**spl_Gamma_h(m)
     
 
@@ -51,7 +51,7 @@ def integrand_sveff_t(t, x, m, lambda_h):
     sqrts = np.sqrt(s)
     Dhs = 1 / ((s - m_h**2)**2 + m_h**2 * gamma_h(m_h)**2)
     ovcms = 2 * (lambda_h * v0)**2 / sqrts * Dhs * gamma_h(sqrts)
-    sveff =  x * s * np.sqrt(s - 4 * m**2) * sp.kn(1, x * sqrts / m) * ovcms / (16 * m**5 * sp.kn(2, x)**2)
+    sveff =  x * s * np.sqrt(s - 4 * m**2) * sp.kn(1, x * sqrts / m) * ovcms / (16 * m**5 * sp.kn(2, x)**2 * t**2)
     return sveff
 
 def OeffV(x, m, lambda_h):
