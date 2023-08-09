@@ -316,17 +316,20 @@ ys *= masses / (3.63 * 10**-9)
 fig, ax = plt.subplots(figsize=(8, 4)) # wide figure!
 ax.plot(masses, ys)
     
-ax.set_yscale('log'); ax.set_xscale('log')
-ax.set_ylim(ymin=0.1)
-ax.legend(loc='upper left')
+ax.set_yscale('log')
+ax.set_xscale('log')
+ax.axhline(0.12, c='tab:red', ls='--')
+# ax.set_ylim(ymin=0.1)
+# ax.legend(loc='upper left')
 ax.set_xlabel("Mass $m_S$ (GeV)")
 ax.set_ylabel("Present Day Abundance $\Omega_S h^2$")
 fig.savefig("Q4c.png", dpi=400, bbox_inches='tight')
 fig.savefig("Q4c.pdf", dpi=400, bbox_inches='tight')
 
+import pickle
+with open('coolfile.pickle', 'wb') as f:
+    pickle.dump(ys, f)
 
 
 
-
-
-
+    
