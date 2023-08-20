@@ -25,41 +25,66 @@ m_h = 125                                       # higgs mass, GeV
 mu = np.sqrt(np.pi / 45) * Mpl * gstar**(1/2)   # scaling constant
 v0 = 246                                        # vacuum expectation value, GeV
 
+# Higgs boson decay width parameters
 # Q (GeV)
 Q = np.array([80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0, 170.0, 180.0, 190.0, 200.0, 220.0, 240.0, 260.0, 280.0, 300.0])
 # Gamma/width (MeV)
 Gamma_h = np.array([1.99, 2.22, 2.48, 2.85, 3.51, 4.91, 8.17, 17.3, 83.1, 380, 631, 1040, 1430, 2310, 3400, 4760, 6430, 8430]) / 1000
 # now converted to Gev!
-spl_Gamma_h = interp.CubicSpline(Q, np.log10(Gamma_h), extrapolate=True)
+spl_Gamma_h = interp.CubicSpline(Q, np.log10(Gamma_h), extrapolate=True) # spline the log(Y) data for more accuracy
 
 def cms2gev(ov):
     '''Converts from units of cm^3/s to GeV'''
     return ov / (1.17 * 1e-17)
 
 def gamma_h(m):
-    '''
+    ''' Returns interpolated/extrapolated predictions for the higgs boson decay at a given mass
     '''
     if m > 300:
-        return Gamma_h[-1] + 0.1 * (m - 300)
-    return 10**spl_Gamma_h(m)
+        return Gamma_h[-1] + 0.1 * (m - 300) # can use a linear model to extrapolate in the high mass regime
+    return 10**spl_Gamma_h(m) # otherwise use the interpolated model (or extrapolated in the low mass regime)
     
 
 def integrand_sveff_t(t, x, m, lambda_h):
+    ''' Change of variables integrand analogous to equation (10) in the task sheet
+    Inputs
+    ------
+    x : float
+        Effective temperature of the universe (x = particle mass / temperature)
+    m : float
+        Mass of the particle
+    lambda_h : float
+        Dimensionless coupling that describes the interaction strength between DM and higgs boson.
+    Returns
+    -------
+    sveff : float
+        the integrand at a specific value of x
     '''
-    '''
-    s = 1 / t
-    sqrts = np.sqrt(s)
-    Dhs = 1 / ((s - m_h**2)**2 + m_h**2 * gamma_h(m_h)**2)
+    s = 1 / t   # change of variables
+    sqrts = np.sqrt(s)  # define this so we only need to calculate it once
+    Dhs = 1 / ((s - m_h**2)**2 + m_h**2 * gamma_h(m_h)**2) 
     ovcms = 2 * (lambda_h * v0)**2 / sqrts * Dhs * gamma_h(sqrts)
-    sveff =  x * s * np.sqrt(s - 4 * m**2) * sp.kn(1, x * sqrts / m) * ovcms / (16 * m**5 * sp.kn(2, x)**2 * t**2)
+    sveff =  x * s * np.sqrt(s - 4 * m**2) * sp.kn(1, x * sqrts / m) * ovcms / (16 * m**5 * sp.kn(2, x)**2 * t**2) # integrand in eq 10.
     return sveff
 
 def OeffV(x, m, lambda_h):
+    ''' Calculates the thermally averaged effective interaction cross section for a particle.
+    Inputs
+    ------
+    x : float
+        Effective temperature of the universe (x = particle mass / temperature)
+    m : float
+        Mass of the particle
+    lambda_h : float
+        Dimensionless coupling that describes the interaction strength between DM and higgs boson.
+    Returns
+    -------
+    integral : float
+        The effective thermally averaged cross section for the particle at the universe epoch defined from x
     '''
-    '''
-    smin = 4.0 * pow(m, 2)
-    smax = 20.0 * pow(m, 2)
-    integral, err = integ.quad(integrand_sveff_t, 1.0/smax, 1.0/smin, args=(x, m, lambda_h), epsabs=0, epsrel=1.0e-3)
+    smin = 4.0 * pow(m, 2) # integral bound defined in eq 10 in the task sheet.
+    smax = 20.0 * pow(m, 2) # arbitrarily high number so that the inverse is close enough to 0
+    integral, err = integ.quad(integrand_sveff_t, 1.0/smax, 1.0/smin, args=(x, m, lambda_h), epsabs=0, epsrel=1.0e-3) # perform the integral
     return integral
 
 def Yeq(x, spin):
@@ -159,109 +184,119 @@ def root_find(xarr, mass):
 
 ### Q3a ###
 
-# x = np.logspace(0, 3, 100)  # initialise temps
+x = np.logspace(0, 3, 100)  # initialise temps
 
-# fig, ax = plt.subplots(figsize=(4.5, 5))    # make figure
+fig, ax = plt.subplots(figsize=(4.5, 5))    # make figure
 
-# # define parameters we want to look at
-# masses = [100, 100, 100, 100, 100, 10]
-# ovs = [-26., -27., -28.1, -29., -30., -30.]
+# define parameters we want to look at
+masses = [100, 100, 100, 100, 100, 10]
+ovs = [-26., -27., -28.1, -29., -30., -30.]
 
-# for i, mass in enumerate(masses):
-#     y = dimenless_abund(x, mass, 1/2, ovs[i], 'log')     # solve for the abundance across our temps
-#     ax.plot(x, y, label=f'$m_\chi$={mass}, $\log_{{10}}(\sigma v)={ovs[i]}$')   # and plot it on the figure
+for i, mass in enumerate(masses):
+    y = dimenless_abund(x, mass, 1/2, ovs[i], 'log')     # solve for the abundance across our temps
+    ax.plot(x, y, label=f'$m_\chi$={mass}, $\log_{{10}}(\sigma v)={ovs[i]}$')   # and plot it on the figure
     
-# ax.set_xscale('log'); ax.set_yscale('log')
-# ax.set_xlabel("$x = m / T$"); ax.set_ylabel("Abundance $Y$")
-# ax.legend(loc='upper right')
-# ax.set_ylim(ymax=0.1)   # set a bit higher so that the legend fits nicely
+ax.set_xscale('log'); ax.set_yscale('log')
+ax.set_xlabel("$x = m / T$"); ax.set_ylabel("Abundance $Y$")
+ax.legend(loc='upper right')
+ax.set_ylim(ymax=0.1)   # set a bit higher so that the legend fits nicely
 
-# fig.savefig("Q3a.png", dpi=400, bbox_inches='tight')    # save figures as png (to look at) and pdf (for the report)
-# fig.savefig("Q3a.pdf", dpi=400, bbox_inches='tight')
+fig.savefig("Q3a.png", dpi=400, bbox_inches='tight')    # save figures as png (to look at) and pdf (for the report)
+fig.savefig("Q3a.pdf", dpi=400, bbox_inches='tight')
 
 
-# ### Now Q3b ###
-# x = np.logspace(1, 3, 100)
-# masses = np.logspace(-3, 4, 600) # big range of masses to look at
-# ovs = np.linspace(-30, -26, 5) # look at a few cross sections - this is a linspace, but these values will be used as powers
+### Now Q3b ###
+x = np.logspace(1, 3, 100)
+masses = np.logspace(-3, 4, 600) # big range of masses to look at
+ovs = np.linspace(-30, -26, 5) # look at a few cross sections - this is a linspace, but these values will be used as powers
 
-# ys = np.zeros((len(masses), len(ovs))) # initialise array of data
+ys = np.zeros((len(masses), len(ovs))) # initialise array of data
 
-# for i, mass in enumerate(masses):
-#     for j, ov in enumerate(ovs):
-#         ys[i, j] = cosmo_abund(ov, x, mass, 1/2, 0, 'log') # calculate present day val for this mass and cross section, and store it
+for i, mass in enumerate(masses):
+    for j, ov in enumerate(ovs):
+        ys[i, j] = cosmo_abund(ov, x, mass, 1/2, 0, 'log') # calculate present day val for this mass and cross section, and store it
 
-# # now to plot these present day vals
-# fig, ax = plt.subplots(figsize=(8, 4)) # wide figure!
-# for i in range(len(ovs)):
-#     ax.plot(masses, ys[:, i], label=f'$\log_{{10}}(\sigma v) = {ovs[i]}$')
+# now to plot these present day vals
+fig, ax = plt.subplots(figsize=(8, 4)) # wide figure!
+for i in range(len(ovs)):
+    ax.plot(masses, ys[:, i], label=f'$\log_{{10}}(\sigma v) = {ovs[i]}$')
     
-# ax.set_yscale('log'); ax.set_xscale('log')
-# ax.set_ylim(ymin=0.1)
-# ax.legend(loc='upper left')
-# ax.set_xlabel("Mass $m_\chi$ (GeV)")
-# ax.set_ylabel("Present Day Abundance $\Omega h^2$")
-# fig.savefig("Q3b.png", dpi=400, bbox_inches='tight')
-# fig.savefig("Q3b.pdf", dpi=400, bbox_inches='tight')
+ax.set_yscale('log'); ax.set_xscale('log')
+ax.set_ylim(ymin=0.1)
+ax.legend(loc='upper left')
+ax.set_xlabel("Mass $m_\chi$ (GeV)")
+ax.set_ylabel("Present Day Abundance $\Omega h^2$")
+fig.savefig("Q3b.png", dpi=400, bbox_inches='tight')
+fig.savefig("Q3b.pdf", dpi=400, bbox_inches='tight')
 
 
 
 ### Q3c ###
 
-# x = np.logspace(1.1, 3, 400)
-# masses = np.logspace(0, 4, 100)
+x = np.logspace(1.1, 3, 400)
+masses = np.logspace(0, 4, 100)
 
-# ovs = np.empty((len(masses), 3)) # initialise empty array for our data
-# for i, mass in enumerate(masses):
-#     ovs[i, :] = root_find(x, mass) # find the 3 cross section params for this mass and store them
+ovs = np.empty((len(masses), 3)) # initialise empty array for our data
+for i, mass in enumerate(masses):
+    ovs[i, :] = root_find(x, mass) # find the 3 cross section params for this mass and store them
     
-# fig, ax = plt.subplots(figsize=(4.5, 4))
-# # want to plot filled in regions, and since our ovs are powers, we need to exponentiate them to get meaningful, physical values
-# ax.fill_between(masses, 10**ovs[:, 0], 10**ovs[:, 1], alpha=0.8, color='tab:blue', label='$3\sigma$ Region')
-# ax.fill_between(masses, 10**ovs[:, 1], 10**ovs[:, 2], alpha=0.3, color='tab:red', label='Partial Solution')
-# ax.set_yscale('log')
-# ax.set_xscale('log')
-# ax.set_ylabel("Cross Section $<\sigma v>$ (cm$^3$/s)", usetex=True)
-# ax.set_xlabel("Mass $m_\chi$ (GeV)")
-# ax.legend()
+fig, ax = plt.subplots(figsize=(4.5, 4))
+# want to plot filled in regions, and since our ovs are powers, we need to exponentiate them to get meaningful, physical values
+ax.fill_between(masses, 10**ovs[:, 0], 10**ovs[:, 1], alpha=0.8, color='tab:blue', label='$3\sigma$ Region')
+ax.fill_between(masses, 10**ovs[:, 1], 10**ovs[:, 2], alpha=0.3, color='tab:red', label='Partial Solution')
+ax.set_yscale('log')
+ax.set_xscale('log')
+ax.set_ylabel("Cross Section $<\sigma v>$ (cm$^3$/s)", usetex=True)
+ax.set_xlabel("Mass $m_\chi$ (GeV)")
+ax.legend()
 
-# fig.savefig('Q3c.png', dpi=400, bbox_inches='tight')
-# fig.savefig('Q3c.pdf', dpi=400, bbox_inches='tight')
+fig.savefig('Q3c.png', dpi=400, bbox_inches='tight')
+fig.savefig('Q3c.pdf', dpi=400, bbox_inches='tight')
 
-# # now save a zoomed in plot so that we can get a better look at the +/- 3 sigma region
-# ax.set_ylim([0.9 * min(10**ovs[:, 1]), 1.1 * max(10**ovs[:, 0])])
-# ax.legend(loc='lower right')
-# fig.savefig('Q3c-zoom.png', dpi=400, bbox_inches='tight')
-# fig.savefig('Q3c-zoom.pdf', dpi=400, bbox_inches='tight')
+# now save a zoomed in plot so that we can get a better look at the +/- 3 sigma region
+ax.set_ylim([0.9 * min(10**ovs[:, 1]), 1.1 * max(10**ovs[:, 0])])
+ax.legend(loc='lower right')
+fig.savefig('Q3c-zoom.png', dpi=400, bbox_inches='tight')
+fig.savefig('Q3c-zoom.pdf', dpi=400, bbox_inches='tight')
 
 
 ### Q4a ###
 
-# fig, ax = plt.subplots()
+# lets plot how well the spline fits the data
+fig, ax = plt.subplots()
 
-# ax.plot(Q, Gamma_h)
-# ax.set_yscale('log')
-# m = np.arange(50, 200, 0.5)
-# ax.plot(m, [gamma_h(M) for M in m])
+ax.plot(Q, Gamma_h, marker='o', label='Data')
+ax.set_yscale('log')
+m = np.arange(50, 350, 0.5)
+ax.plot(m, [gamma_h(M) for M in m], label='Interpolated Curve')
+ax.axvline(Q[-1], c='tab:red', ls='--')
+ax.axvline(Q[0], c='tab:purple', ls='--')
+ax.set_xlabel("Higgs Boson Mass (GeV)")
+ax.set_ylabel("Predicted Decay Width $\Gamma_h$ (GeV)")
+ax.legend()
+fig.savefig('Q4a-spline.png', dpi=400, bbox_inches='tight')
+fig.savefig('Q4a-spline.pdf', dpi=400, bbox_inches='tight')
 
-# xs = [10, 20, 50, 100]
-# masses = np.logspace(np.log10(30), 3, 200)
-# sveff = np.zeros((len(xs), len(masses)))
-# for i, x in enumerate(xs):
-#     for j, m in enumerate(masses):
-#         sveff[i, j] = OeffV(x, m, 1e-3)
+
+# now lets actually look at the question, and plot effective cross section for range of masses
+xs = [10, 20, 50, 100]
+masses = np.logspace(np.log10(30), 3, 200)
+sveff = np.zeros((len(xs), len(masses)))
+for i, x in enumerate(xs):
+    for j, m in enumerate(masses):
+        sveff[i, j] = OeffV(x, m, 1e-3)
     
     
-# fig, ax = plt.subplots()
-# for i in range(len(xs)):
-#     ax.plot(masses, sveff[i, :], label=f'$x = {xs[i]}$')
+fig, ax = plt.subplots()
+for i in range(len(xs)):
+    ax.plot(masses, sveff[i, :], label=f'$x = {xs[i]}$')
 
-# ax.set_xscale('log'); ax.set_yscale('log')
-# ax.set_xlabel('Mass $m_S$ (GeV)'); ax.set_ylabel("Thermally Averaged Cross-Section $<\sigma v>$ (cm$^3$/s)")
-# ax.legend()
+ax.set_xscale('log'); ax.set_yscale('log')
+ax.set_xlabel('Mass $m_S$ (GeV)'); ax.set_ylabel("Thermally Averaged Cross-Section $<\sigma v>$ (cm$^3$/s)")
+ax.legend()
 
-# fig.savefig('Q4a.png', dpi=400, bbox_inches='tight')
-# fig.savefig('Q4a.pdf', dpi=400, bbox_inches='tight')
+fig.savefig('Q4a.png', dpi=400, bbox_inches='tight')
+fig.savefig('Q4a.pdf', dpi=400, bbox_inches='tight')
 
 
 
@@ -291,26 +326,20 @@ fig.savefig("Q4b.pdf", dpi=400, bbox_inches='tight')
 
 ### Q4c ###
 x = np.logspace(0, 3, 20)
-# masses = np.logspace(np.log10(50), 3, 100) # big range of masses to look at
-masses = np.linspace(50, 200, 150)
-# ovs = np.linspace(-30, -26, 5) # look at a few cross sections - this is a linspace, but these values will be used as powers
-
-# ys = np.zeros((len(masses), len(ovs))) # initialise array of data
-ys = np.zeros(len(masses))
+masses = np.linspace(50, 200, 150) # reasonably well sampled masses in the desired range
+ys = np.zeros(len(masses))  # initialise array of data
 
 for i, mass in enumerate(masses):
-    # ys[i] = cosmo_abund([], x, mass, 1/2, 0, [True, 1e-3]) # calculate present day val for this mass and cross section, and store it
-    # ys[i] = dimenless_abund(x, mass, 1/2, [], [True, 1e-3])[-1]
     arr = dimenless_abund(x, mass, 0, [], [True, 1e-3])
     index = len(masses) - 1
     for j, val in enumerate(arr):
-        if np.isnan(val):
+        if np.isnan(val): # we want to remove nans from the data (which usually only occur in the last few data points)
             index = j - 1 
             break 
-    ys[i] = arr[index]
-    print(i, ys[i])
+    ys[i] = arr[index] # get all values up to the first nan
+    # print(i, ys[i])
 
-ys *= masses / (3.63 * 10**-9)
+ys *= masses / (3.63 * 10**-9) # convert to omega*h^2
 
 # now to plot these present day vals
 fig, ax = plt.subplots(figsize=(8, 4)) # wide figure!
@@ -319,13 +348,12 @@ ax.plot(masses, ys)
 ax.set_yscale('log')
 ax.set_xscale('log')
 ax.axhline(0.12, c='tab:red', ls='--')
-# ax.set_ylim(ymin=0.1)
-# ax.legend(loc='upper left')
 ax.set_xlabel("Mass $m_S$ (GeV)")
 ax.set_ylabel("Present Day Abundance $\Omega_S h^2$")
 fig.savefig("Q4c.png", dpi=400, bbox_inches='tight')
 fig.savefig("Q4c.pdf", dpi=400, bbox_inches='tight')
 
+# pickle the file so that we don't always need to rerun the expensive code above when graphing
 import pickle
 with open('coolfile.pickle', 'wb') as f:
     pickle.dump(ys, f)
